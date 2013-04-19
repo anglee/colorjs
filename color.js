@@ -1,3 +1,9 @@
+co = {};
+co.util = {
+    int: function(num) { return parseInt(num, 10); },
+    hex: function(num) { var hex = num.toString(16); return hex.length === 1 ? "0" + hex : hex; }
+};
+
 function Color(r, g, b) {
     this.r = r;
     this.g = g;
@@ -5,12 +11,10 @@ function Color(r, g, b) {
 }
 
 Color.prototype.const = {FACTOR: 0.7};
-Color.prototype.util = {
-    int: function(num) { return parseInt(num, 10); }
-};
+Color.prototype.co = co;
 
 Color.prototype.brighter = function () {
-    var int = this.util.int;
+    var int = this.co.util.int;
     var FACTOR = this.const.FACTOR;
     // 1. black.brighter() should return grey
     // 2. applying brighter to blue will always return blue, brighter
@@ -40,8 +44,17 @@ Color.prototype.darker = function() {
         Math.max(int(b * FACTOR), 0));
 };
 
-co = {};
-co.util = Color.prototype.util;
+Color.prototype.rgb = function() {
+    return {r: this.r, g: this.g, b: this.b};
+};
+Color.prototype.hsb = function() {
+    return this.co.RGBtoHSB(this.r, this.g, this.b);
+};
+Color.prototype.hex = function() {
+    var hex = this.co.util.hex;
+    return "#" + hex(this.r) + hex(this.g) + hex(this.b);
+};
+
 co.HSBtoRGB = function (hue, saturation, brightness) {
     var int = this.util.int;
     var r = 0, g = 0, b = 0;
