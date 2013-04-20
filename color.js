@@ -1,18 +1,19 @@
 co = {};
 co.util = {
-    int: function(num) { return parseInt(num, 10); },
-    hex: function(num) { var hex = num.toString(16); return hex.length === 1 ? "0" + hex : hex; },
-    toDecimal: function(string) { return parseInt(string, 16); },
-    isNumber: function(n) { return !isNaN(parseFloat(n)) && isFinite(n); },
-    isString: function(obj) { return toString.call(obj) === '[object String]'; },
-    isRGB: function(obj) { return obj.hasOwnProperty('r') && obj.hasOwnProperty('g') && obj.hasOwnProperty('b'); },
-    isHSV: function(obj) { return obj.hasOwnProperty('h') && obj.hasOwnProperty('s') && obj.hasOwnProperty('v'); },
-    isHSB: function(obj) { return obj.hasOwnProperty('h') && obj.hasOwnProperty('s') && obj.hasOwnProperty('b'); },
-    isHSL: function(obj) { return obj.hasOwnProperty('h') && obj.hasOwnProperty('s') && obj.hasOwnProperty('l'); },
-    isHLS: function(obj) { return obj.hasOwnProperty('h') && obj.hasOwnProperty('s') && obj.hasOwnProperty('l'); },
+    int: function (num) { return parseInt(num, 10); },
+    hex: function (num) { var hex = num.toString(16); return hex.length === 1 ? "0" + hex : hex; },
+    toDecimal: function (string) { return parseInt(string, 16); },
+    isNumber: function (n) { return !isNaN(parseFloat(n)) && isFinite(n); },
+    isString: function (obj) { return toString.call(obj) === '[object String]'; },
+    isRGB: function (obj) { return obj.hasOwnProperty('r') && obj.hasOwnProperty('g') && obj.hasOwnProperty('b'); },
+    isHSV: function (obj) { return obj.hasOwnProperty('h') && obj.hasOwnProperty('s') && obj.hasOwnProperty('v'); },
+    isHSB: function (obj) { return obj.hasOwnProperty('h') && obj.hasOwnProperty('s') && obj.hasOwnProperty('b'); },
+    isHSL: function (obj) { return obj.hasOwnProperty('h') && obj.hasOwnProperty('s') && obj.hasOwnProperty('l'); },
+    isHLS: function (obj) { return obj.hasOwnProperty('h') && obj.hasOwnProperty('s') && obj.hasOwnProperty('l'); },
     isHex: function (obj) { return this.isString(obj) && obj.charAt(0) === "#" && obj.length === 7; },
     isShortHex: function (obj) { return this.isString(obj) && obj.charAt(0) === "#" && obj.length === 4; },
-    isCssColorName: function(obj) { return this.isString(obj) && co.cssColors[obj.toLowerCase()]; }
+    isCssColorName: function (obj) { return this.isString(obj) && co.cssColors[obj.toLowerCase()]; },
+    lerp: function (start, end, ratio) { return start === end ? start : start + (end - start ) * ratio; }
 };
 
 function Color(r, g, b) {
@@ -31,69 +32,69 @@ function Color(r, g, b) {
 Color.prototype.const = {FACTOR: 0.7};
 Color.prototype.co = co;
 
-Color.prototype.red = function() {
+Color.prototype.red = function () {
     return this.r;
 };
-Color.prototype.green = function() {
+Color.prototype.green = function () {
     return this.g;
 };
-Color.prototype.blue = function() {
+Color.prototype.blue = function () {
     return this.b;
 };
-Color.prototype.hue = function() {
+Color.prototype.hue = function () {
     return this.hsv().h;
 };
-Color.prototype.saturation = function() {
+Color.prototype.saturation = function () {
     return this.hsv().s;
 };
-Color.prototype.value = function() {
+Color.prototype.value = function () {
     return this.hsv().v;
 };
-Color.prototype.brightness = function() {
+Color.prototype.brightness = function () {
     return this.hsb().b;
 };
-Color.prototype.lightness = function() {
+Color.prototype.lightness = function () {
     return this.hsl().l;
 };
-Color.prototype.rgb = function() {
+Color.prototype.rgb = function () {
     return {r: this.r, g: this.g, b: this.b};
 };
-Color.prototype.rgbArray = function() {
+Color.prototype.rgbArray = function () {
     return [this.r, this.g, this.b];
 };
-Color.prototype.hsb = function() {
+Color.prototype.hsb = function () {
     return this.co.RGBtoHSB(this.r, this.g, this.b);
 };
-Color.prototype.hsbArray = function() {
+Color.prototype.hsbArray = function () {
     var hsb = this.co.RGBtoHSB(this.r, this.g, this.b);
     return [hsb.h, hsb.s, hsb.b];
 };
-Color.prototype.hsv = function() {
+Color.prototype.hsv = function () {
     return this.co.RGBtoHSV(this.r, this.g, this.b);
 };
-Color.prototype.hsvArray = function() {
+Color.prototype.hsvArray = function () {
     var hsv = this.co.RGBtoHSV(this.r, this.g, this.b);
     return [hsv.h, hsv.s, hsv.v];
 };
-Color.prototype.hsl = function() {
+Color.prototype.hsl = function () {
     return this.co.RGBtoHSL(this.r, this.g, this.b);
 };
-Color.prototype.hslArray = function() {
+Color.prototype.hslArray = function () {
     var hsl = this.co.RGBtoHSL(this.r, this.g, this.b);
     return [hsl.h, hsl.s, hsl.l];
 };
-Color.prototype.hls = function() {
+Color.prototype.hls = function () {
     return this.co.RGBtoHLS(this.r, this.g, this.b);
 };
-Color.prototype.hlsArray = function() {
+Color.prototype.hlsArray = function () {
     var hls = this.co.RGBtoHLS(this.r, this.g, this.b);
     return [hls.h, hls.l, hls.s];
 };
-Color.prototype.hex = function() {
+Color.prototype.hex = function () {
     return this.co.RGBtoHEX(this.r, this.g, this.b);
 };
 
-co.color = function() {
+co.color = function () {
     if (arguments.length === 3) {
         return this.rgb(arguments[0], arguments[1], arguments[2]);
     } else if (arguments.length === 1) {
@@ -108,47 +109,50 @@ co.color = function() {
         else if (this.util.isCssColorName(arg0)) { return this.css(arg0); }
     }
 };
-co.rgb = function(r, g, b) {
+
+co.rgb = function (r, g, b) { // create Color from rgb
     if (arguments.length === 1 && this.util.isRGB(arguments[0])) {        
         return this.rgb(arguments[0].r, arguments[0].g, arguments[0].b);
     }    
     return new Color(r, g, b);
 };
-co.hsb = function(h, s, b) {   
+co.hsb = function (h, s, b) { // create Color from hsb
     return this.rgb(this.HSBtoRGB(h, s, b));
 };
-co.hsv = function(h, s, v) {   
+co.hsv = function (h, s, v) { // create Color from hsv
     return this.rgb(this.HSVtoRGB(h, s, v));
 };
-co.hsl = function(h, s, l) {   
+co.hsl = function (h, s, l) { // create Color from hsl
     return this.rgb(this.HSLtoRGB(h, s, l));
 };
-co.hls = function(h, l, s) {   
+co.hls = function (h, l, s) { // create Color from hls
     return this.rgb(this.HSLtoRGB(h, s, l));
 };
-co.hex = function(hex) {
+co.hex = function (hex) { // create Color from hex, e.g. #ff0000
     var rgb = this.HEXtoRGB(hex);
     return new Color(rgb.r, rgb.g, rgb.b);
 };
-co.shortHex = function(shortHex) {
+co.shortHex = function (shortHex) { // create Color from short hex, e.g. #333
     var rgb = this.shortHEXtoRGB(shortHex);
     return new Color(rgb.r, rgb.g, rgb.b);
 };
-co.css = function(cssColorName) {
+co.css = function (cssColorName) { // create Color from css color name, e.g. "red"
     var hex = this.cssColors[cssColorName];
     return this.hex(hex);
 };
 
-co.RGBtoHEX = function(r, g, b) {
+co.RGBtoHEX = function (r, g, b) { 
     var toHex = this.util.hex;
     if (arguments.length === 3) {
+        // input can be 3 args, r, g, b
         return "#" + toHex(r) + toHex(g) + toHex(b);
-    } else if (arguments.length === 1 && this.util.isRGB(arguments[0])) {        
+    } else if (arguments.length === 1 && this.util.isRGB(arguments[0])) {
+        // or a single arg, e.g. {r: 255, g: 0, b:128}
         return this.RGBtoHEX(arguments[0].r, arguments[0].g, arguments[0].b);
     }
 };
 
-co.HEXtoRGB = function(hex) {
+co.HEXtoRGB = function (hex) {
     var toDecimal = this.util.toDecimal;
     var r = toDecimal(hex.substring(1, 3));
     var g = toDecimal(hex.substring(3, 5));
@@ -156,15 +160,15 @@ co.HEXtoRGB = function(hex) {
     return {r: r, g: g, b: b};    
 };
 
-co.shortHEXtoRGB = function(hex) {
+co.shortHEXtoRGB = function (hex) {
     var toDecimal = this.util.toDecimal;
     var r = toDecimal(shortHex.charAt(1));
     var g = toDecimal(shortHex.charAt(2));
     var b = toDecimal(shortHex.charAt(3));
-    return {r:r, g:g, b:b};  
+    return {r: r, g: g, b: b};  
 };
 
-co.HSBtoRGB = function(hue, saturation, brightness) {
+co.HSBtoRGB = function (hue, saturation, brightness) {
     if (arguments.length === 3) {
         return this.HSVtoRGB(hue, saturation, brightness);
     } else if (arguments.length === 1 && this.util.isHSB(arguments[0])) {
@@ -172,11 +176,11 @@ co.HSBtoRGB = function(hue, saturation, brightness) {
     }
 };
 co.HSVtoRGB = function (h, s, v) {
-    var int = this.util.int;
-    var r = 0, g = 0, b = 0;
     if (arguments.length === 1 && this.util.isHSV(arguments[0])) {
         return this.HSVtoRGB(arguments[0].h, arguments[0].s, arguments[0].v);
-    } 
+    }
+    var int = this.util.int;
+    var r = 0, g = 0, b = 0; 
     if (s === 0) {
         r = g = b = int(v * 255.0 + 0.5);
     } else {
@@ -261,6 +265,9 @@ co.RGBtoHSB = function (r, g, b) {
 };
 
 co.RGBtoHSV = function (r, g, b) {
+    if (arguments.length === 1 && this.util.isRGB(arguments[0])) {
+        return this.RGBtoHSV(arguments[0].r, arguments[0].g, arguments[0].b);
+    }    
     var hsb = this.RGBtoHSB(r, g, b);
     return {h: hsb.h, s: hsb.s, v: hsb.b};
 };
@@ -274,6 +281,9 @@ co.RGBtoYIQ = function (r, g, b) {
 };
 
 co.HLStoRGB = function (h, l, s) {
+    if (arguments.length === 1 && this.util.isHLS(arguments[0])) {
+        return this.HLStoRGB(arguments[0].h, arguments[0].l, arguments[0].s);
+    }    
     var r, g, b;
 
     if (s === 0) {
@@ -309,6 +319,9 @@ co.HLStoRGB = function (h, l, s) {
 };
 
 co.RGBtoHLS = function (r, g, b) {
+    if (arguments.length === 1 && this.util.isRGB(arguments[0])) {
+        return this.RGBtoHLS(arguments[0].r, arguments[0].g, arguments[0].b);
+    }    
     r /= 255, g /= 255, b /= 255;
     var cmax = Math.max(r, g, b);
     var cmin = Math.min(r, g, b);
@@ -337,13 +350,38 @@ co.RGBtoHLS = function (r, g, b) {
 };
 
 co.HSLtoRGB = function (h, s, l) {
+    if (arguments.length === 1 && this.util.isHSL(arguments[0])) {
+        return this.HSLtoRGB(arguments[0].h, arguments[0].s, arguments[0].l);
+    }    
     return this.HLStoRGB(h, l, s);
 };
 
 co.RGBtoHSL = function (r, g, b) {
+    if (arguments.length === 1 && this.util.isRGB(arguments[0])) {
+        return this.RGBtoHSL(arguments[0].r, arguments[0].g, arguments[0].b);
+    }    
     return this.RGBtoHLS(r, g, b);
 };
 
+co.blend = co.mix = function (color1, color2, ratio) {
+    var int = this.util.int;
+    var lerp = this.util.lerp;
+    return new Color(
+            int(lerp(color1.r, color2.r, ratio)),
+            int(lerp(color1.g, color2.g, ratio)),
+            int(lerp(color1.b, color2.b, ratio)));
+};
+
+co.blendHSL = co.mixHSL = function (color1, color2, ratio) {
+    var int = this.util.int;
+    var lerp = this.util.lerp;
+    var hsl1 = color1.hsl(), hsl2 = color2.hsl();
+    return this.hsl(
+            lerp(hsl1.h, hsl2.h, ratio),
+            lerp(hsl1.s, hsl2.s, ratio),
+            lerp(hsl1.l, hsl2.l, ratio));
+};
+ 
 Color.prototype.brighter = function () {
     var int = this.co.util.int;
     var FACTOR = this.const.FACTOR;
@@ -365,7 +403,7 @@ Color.prototype.brighter = function () {
         Math.min(int(b / FACTOR), 255));
 };
 
-Color.prototype.darker = function() {
+Color.prototype.darker = function () {
     var int = this.util.int;
     var FACTOR = this.const.FACTOR;
     var r = this.r, g = this.g, b = this.b;
