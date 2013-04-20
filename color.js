@@ -366,6 +366,8 @@ co.RGBtoHSL = function (r, g, b) {
 co.blend = co.mix = function (color1, color2, ratio) {
     var int = this.util.int;
     var lerp = this.util.lerp;
+    color1 = this.color(color1);
+    color2 = this.color(color2);
     return new Color(
             int(lerp(color1.r, color2.r, ratio)),
             int(lerp(color1.g, color2.g, ratio)),
@@ -373,8 +375,9 @@ co.blend = co.mix = function (color1, color2, ratio) {
 };
 
 co.blendHSL = co.mixHSL = function (color1, color2, ratio) {
-    var int = this.util.int;
     var lerp = this.util.lerp;
+    color1 = this.color(color1);
+    color2 = this.color(color2);    
     var hsl1 = color1.hsl(), hsl2 = color2.hsl();
     return this.hsl(
             lerp(hsl1.h, hsl2.h, ratio),
