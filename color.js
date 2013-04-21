@@ -32,14 +32,26 @@ function Color(r, g, b) {
 Color.prototype.const = {FACTOR: 0.7};
 Color.prototype.co = co;
 
-Color.prototype.red = function () {
-    return this.r;
+Color.prototype.red = function (value) {
+    if (arguments.length === 1) {
+        this.r = value;
+    } else {
+        return this.r;
+    }
 };
-Color.prototype.green = function () {
-    return this.g;
+Color.prototype.green = function (value) {
+    if (arguments.length === 1) {
+        this.g = value;
+    } else {
+        return this.g;
+    }
 };
-Color.prototype.blue = function () {
-    return this.b;
+Color.prototype.blue = function (value) {
+    if (arguments.length === 1) {
+        this.b = value;
+    } else {
+        return this.b;
+    }
 };
 Color.prototype.hue = function () {
     return this.hsv().h;
@@ -537,9 +549,22 @@ Color.prototype.darker = function () {
         Math.max(int(b * FACTOR), 0));
 };
 
-Color.prototype.complement = function () {
-    // TODO
+Color.prototype.rotate = function (degree) {
+    var hsl = this.hsl();
+    var newH = hsl.h + (degree / 360.0);
+    while (newH < 0) { newH += 1.0; }
+    while (newH > 1) { newH -= 1.0; }
+    return this.co.hsl(newH, hsl.s, hsl.l);
 };
+
+Color.prototype.complement = function () {
+    return this.rotate(180);
+};
+
+Color.prototype.negate = function() {
+    return new Color(255 - this.r, 255 - this.g, 255 - this.b);
+};
+
 
 Color.prototype.asSeenBy = function () {
     // TODO, return color seen by different types of color blind or animal
