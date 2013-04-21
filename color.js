@@ -430,12 +430,15 @@ co.palette = function (colors, levels, func) {
             (function() {
                 var fun = f;
                 result[f] = function() {
-
                     var result2 = [];
                     for (var j = 0; j < this.length; ++j) {
                         result2.push(this[j][fun]());
                     }
-                    return result2;
+                    if (result2[0] instanceof Color) {
+                        return co.palette(result2);
+                    } else {
+                        return result2;
+                    }
                 };
             })();
         }
@@ -465,7 +468,7 @@ Color.prototype.brighter = function () {
 };
 
 Color.prototype.darker = function () {
-    var int = this.util.int;
+    var int = this.co.util.int;
     var FACTOR = this.const.FACTOR;
     var r = this.r, g = this.g, b = this.b;
     return new Color(
