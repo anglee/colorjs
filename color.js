@@ -273,11 +273,19 @@ co.RGBtoHSV = function (r, g, b) {
 };
 
 co.YIQtoRGB = function (y, i, q) {
-    
+    // TODO
 };
 
 co.RGBtoYIQ = function (r, g, b) {
-    
+    // TODO    
+};
+
+co.CMYKtoRGB = function (c, m, y, k) {
+    // TODO
+};
+
+co.RGBtoCMYK = function (r, g, b) {
+    // TODO    
 };
 
 co.HLStoRGB = function (h, l, s) {
@@ -364,6 +372,10 @@ co.RGBtoHSL = function (r, g, b) {
     return this.RGBtoHLS(r, g, b);
 };
 
+co.distance = co.distanceCIEDE2000 = function (color1, color2) {
+    // TODO
+};
+
 co.blend = co.mix = function (color1, color2, ratio) {
     var int = this.util.int;
     var lerp = this.util.lerp;    
@@ -445,6 +457,13 @@ co.palette = function (colors, levels, func) {
     }
     return result;
 };
+
+co.palette.presets = {
+    // http://cran.r-project.org/web/packages/colorspace/vignettes/hcl-colors.pdf
+    "qualitative": [],
+    "sequential": [],
+    "diverging": []
+};
  
 Color.prototype.brighter = function () {
     var int = this.co.util.int;
@@ -479,6 +498,10 @@ Color.prototype.darker = function () {
 
 Color.prototype.complement = function () {
     // TODO
+};
+
+Color.prototype.asSeenBy = function () {
+    // TODO, return color seen by different types of color blind or animal
 };
 
 co.cssColors = {
