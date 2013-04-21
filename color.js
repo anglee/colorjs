@@ -281,6 +281,7 @@ co.RGBtoYIQ = function (r, g, b) {
 };
 
 co.HLStoRGB = function (h, l, s) {
+    var int = this.util.int;
     if (arguments.length === 1 && this.util.isHLS(arguments[0])) {
         return this.HLStoRGB(arguments[0].h, arguments[0].l, arguments[0].s);
     }    
@@ -315,7 +316,7 @@ co.HLStoRGB = function (h, l, s) {
         b = hue2rgb(p, q, h - 1 / 3);
     }
 
-    return {r: r * 255, g: g * 255, b: b * 255};
+    return {r: int(r * 255), g: int(g * 255), b: int(b * 255)};
 };
 
 co.RGBtoHLS = function (r, g, b) {
@@ -365,15 +366,29 @@ co.RGBtoHSL = function (r, g, b) {
 
 co.blend = co.mix = function (color1, color2, ratio) {
     var int = this.util.int;
-    var lerp = this.util.lerp;
+    var lerp = this.util.lerp;    
     color1 = this.color(color1);
     color2 = this.color(color2);
+    if (ratio !== 0 && !ratio) {
+        ratio = 0.5;
+    }
     return new Color(
             int(lerp(color1.r, color2.r, ratio)),
             int(lerp(color1.g, color2.g, ratio)),
             int(lerp(color1.b, color2.b, ratio)));
 };
-
+co.lerp = function (colors, ratio) {
+    // evenly distributed colors from 0.0 to 1.0
+    ratio = ratio * (colors.length - 1);
+    var i = Math.floor(ratio);
+    var j = Math.ceil(ratio);
+    if (i === j) {
+        return new Color(colors[j]);
+    } else {
+        ratio = ratio - i;
+        return this.blend(colors[i], colors[j], ratio);
+    }    
+};
 co.blendHSL = co.mixHSL = function (color1, color2, ratio) {
     var lerp = this.util.lerp;
     color1 = this.color(color1);
@@ -383,6 +398,49 @@ co.blendHSL = co.mixHSL = function (color1, color2, ratio) {
             lerp(hsl1.h, hsl2.h, ratio),
             lerp(hsl1.s, hsl2.s, ratio),
             lerp(hsl1.l, hsl2.l, ratio));
+};
+co.lerpHSL = function (colors, ratio) {
+    ratio = ratio * colors.length;
+    var i = Math.floor(ratio);
+    var j = Math.ceil(ratio);
+    if (i === j) {
+        return new Color(colors[j]);
+    } else {
+        ratio = ratio - i;
+        return blendHSL(colors[i], colors[j], ratio);
+    }    
+};
+co.palette = function (colors, levels, func) {
+    // TODO, now colors assume to be an array
+    // make it also take a preset name.
+    if (!levels) { levels = colors.length; }
+    var result = [];
+    for (var i = 0; i < levels; ++i) {
+        if (func) {
+            if (this.util.isString(func)) {
+                func = Color.prototype[func];
+            }
+            result.push(func.apply(co.lerp(colors, i / (levels - 1))));
+        } else {
+            result.push(co.lerp(colors, i / (levels - 1)));
+        }
+    }
+    if (!func) {
+        for (var f in Color.prototype) {
+            (function() {
+                var fun = f;
+                result[f] = function() {
+
+                    var result2 = [];
+                    for (var j = 0; j < this.length; ++j) {
+                        result2.push(this[j][fun]());
+                    }
+                    return result2;
+                };
+            })();
+        }
+    }
+    return result;
 };
  
 Color.prototype.brighter = function () {
@@ -414,6 +472,10 @@ Color.prototype.darker = function () {
         Math.max(int(r * FACTOR), 0),
         Math.max(int(g * FACTOR), 0),
         Math.max(int(b * FACTOR), 0));
+};
+
+Color.prototype.complement = function () {
+    // TODO
 };
 
 co.cssColors = {
