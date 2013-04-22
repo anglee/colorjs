@@ -20,10 +20,16 @@ co.util = {
 
 function Color(r, g, b) {
     if (g === undefined && b === undefined) { // arguments.length === 1
-        var rgb = this.co.color(arguments[0]);
-        this.r = rgb.r;
-        this.g = rgb.g;
-        this.b = rgb.b;
+        if (r === undefined) {
+            this.r = 0;
+            this.g = 0;
+            this.b = 0;
+        } else {
+            var rgb = this.co.color(arguments[0]);
+            this.r = rgb.r;
+            this.g = rgb.g;
+            this.b = rgb.b;
+        }
     } else if (arguments.length === 3) {
         this.r = Math.max(0, Math.min(r, 255));
         this.g = Math.max(0, Math.min(g, 255));
@@ -321,7 +327,7 @@ co.RGBtoHSV = function (r, g, b) {
         } else {
             return this.RGBtoHSV(arguments[0][0], arguments[0][1], arguments[0][2]);
         }
-    }    
+    }
     var hsb = this.RGBtoHSB(r, g, b);
     return {h: hsb.h, s: hsb.s, v: hsb.b};
 };
@@ -339,7 +345,26 @@ co.CMYKtoRGB = function (c, m, y, k) {
 };
 
 co.RGBtoCMYK = function (r, g, b) {
-    // TODO    
+    if (g === undefined && b === undefined) { // arguments.length === 1
+        if (this.util.isRGB(arguments[0])) {
+            return this.RGBtoHSV(arguments[0].r, arguments[0].g, arguments[0].b);
+        } else {
+            return this.RGBtoHSV(arguments[0][0], arguments[0][1], arguments[0][2]);
+        }
+    }
+    var c = 0, m = 0, y = 0, k = 0;
+    if (r === 0 && g === 0 && b === 0) {
+        k = 1;
+    } else {
+        c = 1 - (r / 255.0);
+        m = 1 - (g / 255.0);
+        y = 1 - (b / 255.0);
+        k = Math.min(c, m, y);
+        c = (c - k) / (1 - k);
+        m = (m - k) / (1 - k);
+        y = (y - k) / (1 - k);
+    }
+    return {c: c, m: m, y: y, k: k};
 };
 
 co.LABtoRGB = function (l, a, b) {
@@ -736,10 +761,13 @@ Color.prototype.negate = function() {
 
 
 Color.prototype.asSeenBy = function () {
-    // TODO, return color seen by different types of color blind or animals
-    
+    // TODO, return color seen by different types of color blind or animals   
     
 };
+
+co.colorBlindTypes = [
+    "protanopia", "deuteranopia", "tritanopia"
+];
 
 co.cssColors = {
     "aliceblue": "#f0f8ff",
