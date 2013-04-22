@@ -1,6 +1,4 @@
 colorjs
 =======
+A JavaScript color library
 
-JavaScript color library
-
-http://colorjs.org/
