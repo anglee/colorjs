@@ -46,6 +46,7 @@ Color.prototype.co = co;
 Color.prototype.red = function (value) {
     if (arguments.length === 1) {
         this.r = value;
+        return this;
     } else {
         return this.r;
     }
@@ -53,6 +54,7 @@ Color.prototype.red = function (value) {
 Color.prototype.green = function (value) {
     if (arguments.length === 1) {
         this.g = value;
+        return this;
     } else {
         return this.g;
     }
@@ -60,12 +62,22 @@ Color.prototype.green = function (value) {
 Color.prototype.blue = function (value) {
     if (arguments.length === 1) {
         this.b = value;
+        return this;
     } else {
         return this.b;
     }
 };
 Color.prototype.hue = function () {
-    return this.hsv().h;
+    if (arguments.length === 1) {
+        var hsl = this.hsl();
+        var rgb = this.co.HSLtoRGB(arguments[0], hsl.g, hsl.l);
+        this.r = rgb.r;
+        this.g = rgb.g;
+        this.b = rgb.b;
+        return this;
+    } else {
+        return this.hsl().l;
+    }
 };
 Color.prototype.saturation = function () {
     return this.hsv().s;
@@ -77,10 +89,27 @@ Color.prototype.brightness = function () {
     return this.hsb().b;
 };
 Color.prototype.lightness = function () {
-    return this.hsl().l;
+    if (arguments.length === 1) {
+        var hsl = this.hsl();
+        var rgb = this.co.HSLtoRGB(hsl.h, hsl.g, arguments[0]);
+        this.r = rgb.r;
+        this.g = rgb.g;
+        this.b = rgb.b;
+        return this;
+    } else {
+        return this.hsl().l;
+    }        
 };
-Color.prototype.rgb = function () {
-    return {r: this.r, g: this.g, b: this.b};
+Color.prototype.rgb = function (r, g, b) {
+    if (arguments.length === 0) {
+        return {r: this.r, g: this.g, b: this.b};
+    } else {
+        var temp = new Color(r, g, b);
+        this.r = temp.r;
+        this.g = temp.g;
+        this.b = temp.b;
+        return this;
+    }
 };
 Color.prototype.rgbArray = function () {
     return [this.r, this.g, this.b];
@@ -209,7 +238,7 @@ co.shortHex = function (shortHex) { // create Color from short hex, e.g. #333
     return new Color(rgb.r, rgb.g, rgb.b);
 };
 co.css = function (cssColorName) { // create Color from css color name, e.g. "red"
-    var hex = this.cssColors[cssColorName];
+    var hex = this.cssColors[cssColorName.toLowerCase()];
     return this.hex(hex);
 };
 
@@ -473,7 +502,7 @@ co.LABtoRGB = function (l, a, b) {
 
 co.RGBtoLAB = function (r, g, b) {
     var xyz = this.RGBtoXYZ(r, g, b);
-    co.XYZtoLAB(xyz);
+    return co.XYZtoLAB(xyz);
 };
 
 co.RGBtoXYZ = function (r, g, b) {
@@ -622,7 +651,7 @@ co.RGBtoHSL = function (r, g, b) {
 co.distance = co.deltaE_CIE2000 = function (color1, color2) {
     var sqrt = Math.sqrt;
     var pow = Math.pow;
-    var sq = function (num) { return Math.pow(num, 2) };
+    var sq = function (num) { return Math.pow(num, 2); };
     var log10 = function (num) { return Math.log(num) / Math.LN10; };
     var toDegrees = function (radian) {
         return radian * 180.0 / Math.PI; 
@@ -672,7 +701,7 @@ co.distance = co.deltaE_CIE2000 = function (color1, color2) {
         meanh = meanh + 360;
     }
     
-    var delth = 2 (sqrt(cab1 * cab2)) * Math.sin(toRadians(deltah / 2));
+    var delth = 2 * (sqrt(cab1 * cab2)) * Math.sin(toRadians(deltah / 2));
     var deltal = lab1.l = lab2.l;
     var deltaE = sqrt(sq(deltal) + sq(deltac) + sq(delth));
     var deltaha = sq(deltaE) - sq(deltal) - sq(deltac);
@@ -811,6 +840,31 @@ co.palette.presets = {
     "sequential": [],
     "diverging": []
 };
+
+
+function ColorMap (leftColor, rightColor, left, right, isLeftClose, isRightClose) {
+    this.color = function (value) {
+        if (value < left) {
+            return leftColor;
+        }
+        if (value > right) {
+            return rightColor;
+        }
+        if (isLeftClose && value === left) {
+            return leftColor;
+        }
+        if (isRightClose && value === right) {
+            return rightColor;
+        }
+        return this.mix([leftColor, rightColor], (value - left) / (right - left));
+    };
+};
+co.map = function(input) {
+    var mapFunc = function(value) {
+        return this.color();
+    };
+    return mapFunc;
+};
  
 Color.prototype.brighter = function () {
     var int = this.co.util.int;
@@ -858,7 +912,6 @@ Color.prototype.complement = function () {
 Color.prototype.negate = function() {
     return new Color(255 - this.r, 255 - this.g, 255 - this.b);
 };
-
 
 Color.prototype.asSeenBy = function () {
     // TODO, return color seen by different types of color blind or animals   
