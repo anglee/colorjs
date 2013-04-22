@@ -12,6 +12,8 @@ co.util = {
     isHLS: function (obj) { return obj.hasOwnProperty('h') && obj.hasOwnProperty('s') && obj.hasOwnProperty('l'); },
     isHex: function (obj) { return this.isString(obj) && obj.charAt(0) === "#" && obj.length === 7; },
     isShortHex: function (obj) { return this.isString(obj) && obj.charAt(0) === "#" && obj.length === 4; },
+    isLAB: function (obj) { return obj.hasOwnProperty('l') && obj.hasOwnProperty('a') && obj.hasOwnProperty('b'); },
+    isXYZ: function (obj) { return obj.hasOwnProperty('x') && obj.hasOwnProperty('y') && obj.hasOwnProperty('z'); },
     isCssColorName: function (obj) { return this.isString(obj) && co.cssColors[obj.toLowerCase()]; },
     lerp: function (start, end, ratio) { return start === end ? start : start + (end - start ) * ratio; }
 };
@@ -102,6 +104,20 @@ Color.prototype.hlsArray = function () {
     var hls = this.co.RGBtoHLS(this.r, this.g, this.b);
     return [hls.h, hls.l, hls.s];
 };
+Color.prototype.xyz = function () {
+    return this.co.RGBtoXYZ(this.r, this.g, this.b);
+};
+Color.prototype.xyzArray = function () {
+    var xyz = this.co.RGBtoXYZ(this.r, this.g, this.b);
+    return [xyz.x, xyz.y, xyz.z];
+};
+Color.prototype.lab = function () {
+    return this.co.RGBtoLAB(this.r, this.g, this.b);
+};
+Color.prototype.labArray = function () {
+    var lab = this.co.RGBtoLAB(this.r, this.g, this.b);
+    return [lab.l, lab.a, lab.b];
+};
 Color.prototype.hex = function () {
     return this.co.RGBtoHEX(this.r, this.g, this.b);
 };
@@ -132,6 +148,7 @@ co.rgb = function (r, g, b) { // create Color from rgb
     }    
     return new Color(r, g, b);
 };
+
 co.hsb = function (h, s, b) { // create Color from hsb
     return this.rgb(this.HSBtoRGB(h, s, b));
 };
@@ -325,6 +342,58 @@ co.RGBtoCMYK = function (r, g, b) {
     // TODO    
 };
 
+co.LABtoRGB = function (l, a, b) {
+    // TODO
+};
+
+co.RGBtoLAB = function (r, g, b) {
+    var xyz = this.RGBtoXYZ(r, g, b);
+    co.XYZtoLAB(xyz);
+};
+
+co.RGBtoXYZ = function (r, g, b) {
+    if (g === undefined && b === undefined) { // arguments.length === 1
+        if (this.util.isRGB(arguments[0])) {
+            return this.RGBtoXYZ(arguments[0].r, arguments[0].g, arguments[0].b);
+        } else {
+            return this.RGBtoXYZ(arguments[0][0], arguments[0][1], arguments[0][2]);
+        }
+    }    
+    var transform = function(c) {
+        return (c > 0.0405) ? Math.pow((c + 0.055) / 1.055, 2.4) : (c / 12.92);
+    };
+    var tr = transform(r / 255) * 100;
+    var tg = transform(g / 255) * 100;
+    var tb = transform(b / 255) * 100;
+    var x = tr * 0.4124 + tg * 0.3576 + tb * 0.1805;
+    var y = tr * 0.2126 + tg * 0.7152 + tb * 0.0722;
+    var z = tr * 0.0193 + tg * 0.1192 + tb * 0.9505;
+    return {x: x, y: y, z: z};
+};
+
+co.XYZtoLAB = function (x, y, z) {
+    if (y === undefined && z === undefined) { // arguments.length === 1
+        if (this.util.isXYZ(arguments[0])) {
+            return this.XYZtoLAB(arguments[0].x, arguments[0].y, arguments[0].z);
+        } else {
+            return this.XYZtoLAB(arguments[0][0], arguments[0][1], arguments[0][2]);
+        }
+    }    
+    var rx = 95.047;
+    var ry = 100;
+    var rz = 108.883;
+    var transform = function (c) {
+        return (c > 0.008856) ? Math.pow(c, 1/3) : (7.787 * c) + (16 / 116);
+    };
+    var tx = transform(x / rx);
+    var ty = transform(x / ry);
+    var tz = transform(x / rz);
+    var l = (116 * ty) - 16;
+    var a = 500 * (tx - ty);
+    var b = 200 * (ty - tz);
+    return {l: l, a: a, b: b};
+};
+
 co.HLStoRGB = function (h, l, s) {
     var int = this.util.int;
     if (l === undefined && s === undefined) { // arguments.length === 1
@@ -425,8 +494,108 @@ co.RGBtoHSL = function (r, g, b) {
     return this.RGBtoHLS(r, g, b);
 };
 
-co.distance = co.distanceCIEDE2000 = function (color1, color2) {
-    // TODO
+co.distance = co.deltaE_CIE2000 = function (color1, color2) {
+    var sqrt = Math.sqrt;
+    var pow = Math.pow;
+    var sq = function (num) { return Math.pow(num, 2) };
+    var log10 = function (num) { return Math.log(num) / Math.LN10; };
+    var toDegrees = function (radian) {
+        return radian * 180.0 / Math.PI; 
+    };
+    var toRadians = function (degree) {
+        return degree * Math.PI / 180.0;
+    };
+    
+    var lab1 = new Color(color1).lab();
+    var lab2 = new Color(color2).lab();
+        
+    var cab1 = sqrt(sq(lab1.a) + sq(lab1.b));
+    var cab2 = sqrt(sq(lab2.a) + sq(lab2.b));
+    
+    var meanc = (cab1 + cab2) / 2;
+        
+    var logmeanc = log10(meanc);
+    var log25 = log10(25.0);
+    var cratio = pow(10, logmeanc * 7 - log10(pow(10, logmeanc * 7) + pow(10, log25 * 7)));
+    var g = 0.5 * (1 - cratio);
+    
+    // adjust a* values
+    lab1.a = (1 + g) * lab1.a;
+    lab2.a = (1 + g) * lab2.a;
+    cab1 = sqrt(sq(lab1.a) + sq(lab1.b));
+    cab2 = sqrt(sq(lab2.a) + sq(lab2.b));
+    var deltac = cab1 - cab2;
+    
+    // calculate delta L*
+    var deltal = lab1.l - lab2.l;
+
+    // calculate hue angles
+    var h1 = toDegrees(Math.atan2(lab1.a, lab1.b));
+    var h2 = toDegrees(Math.atan2(lab2.a, lab2.b));
+    if (h1 < 0) { h1 = h1 + 360; }
+    if (h2 < 0) { h2 = h2 + 360; }
+    
+    // calculate delta h and mean h
+    var deltah = h1 - h2;
+    var meanh = h1 + h2;
+    if (deltah > 180) {
+        deltah = deltah - 360;
+        meanh = meanh - 360;
+    }
+    if (deltah < -180) {
+        deltah = deltah + 360;
+        meanh = meanh + 360;
+    }
+    
+    var delth = 2 (sqrt(cab1 * cab2)) * Math.sin(toRadians(deltah / 2));
+    var deltal = lab1.l = lab2.l;
+    var deltaE = sqrt(sq(deltal) + sq(deltac) + sq(delth));
+    var deltaha = sq(deltaE) - sq(deltal) - sq(deltac);
+    if (deltaha < 0) { deltaha = 0; }
+    
+    delth = sqrt(deltaha);
+    delth = 2 * sqrt(cab1 * cab2) * Math.sin(toRadians(deltah / 2));
+    
+    var meanl = (lab1.l + lab2.l) / 2;
+    meanc = (cab1 + cab2) / 2;
+    meanh = meanh / 2;
+    
+    // compute the weighting functions
+    var sl = 1 + 0.015 * sq(meanl - 50) / sqrt(20 + sq(meanl - 50));
+    var sc = 1 + 0.045 * meanc;
+    
+    var t1 = 1 - 0.17 * Math.cos(toRadians(meanh - 30));
+    var t2 = 0.24 * Math.cos(toRadians(2 * meanh));
+    var t3 = 0.32 * Math.cos(toRadians(3 * meanh + 6));
+    var t4 = -0.2 * Math.cos(toRadians(4 * meanh - 63));
+    var t = t1 + t2 + t3 + t4;
+    
+    var sh = 1 + 0.015 * meanc * t;
+    var sr = sc * sh;
+    logmeanc = log10(meanc);
+    var rc_numerator = pow(10, logmeanc * 7);
+    var rc_denominator = rc_numerator + Math.pow(10, log25 * 7);
+    var rc = 2 * sqrt(rc_numerator / rc_denominator);
+    
+    var dthet = 30 * Math.exp(-1 * sq((meanh - 275) / 25));
+    var rt = -Math.sin(2 * toRadians(dthet)) * rc;
+    
+    // Now compute deltaV
+    var vl = sq(deltal / sl);
+    var vc = sq(deltac / sc);
+    var vh = sq(delth / sh);
+    
+    return sqrt(vl + vc + vh + rt * deltac * delth / sr);
+    
+};
+co.deltaE_CIE1976 = function (color1, color2) {
+    
+};
+co.deltaE_CIE1994 = function (color1, color2) {
+    
+};
+co.deltaE_CMC = function (color1, color2) {
+    
 };
 
 co.blend = co.mix = function (color1, color2, ratio) {
@@ -567,7 +736,9 @@ Color.prototype.negate = function() {
 
 
 Color.prototype.asSeenBy = function () {
-    // TODO, return color seen by different types of color blind or animal
+    // TODO, return color seen by different types of color blind or animals
+    
+    
 };
 
 co.cssColors = {
