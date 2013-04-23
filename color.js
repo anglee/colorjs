@@ -504,7 +504,30 @@ co.RGBtoLAB = function (r, g, b) {
     var xyz = this.RGBtoXYZ(r, g, b);
     return co.XYZtoLAB(xyz);
 };
+co.XYZtoRGB = function (x, y, z) {
+    // from http://www.easyrgb.com/
+    if (x === undefined && y === undefined) { // arguments.length === 1
+        if (this.util.isXYZ(arguments[0])) {
+            return this.XYZtoRGB(arguments[0].x, arguments[0].y, arguments[0].z);
+        } else {
+            return this.XYZtoRGB(arguments[0][0], arguments[0][1], arguments[0][2]);
+        }
+    }
+    x /= 100.0;        //X from 0 to  95.047      (Observer = 2°, Illuminant = D65)
+    y /= 100.0;        //Y from 0 to 100.000
+    z /= 100.0;        //Z from 0 to 108.883
 
+    var r = x *  3.2406 + y * -1.5372 + z * -0.4986;
+    var g = x * -0.9689 + y *  1.8758 + z *  0.0415;
+    var b = x *  0.0557 + y * -0.2040 + z *  1.0570;
+    var transform = function(c) {
+        return (c > 0.0031308) ? 1.055 * Math.pow(r, 1 / 2.4) - 0.055 : (c * 12.92);
+    };
+    r = transform(r);
+    g = transform(g);
+    b = transform(b);
+    return {r: int(r * 255), g: int(g * 255), b: int(b * 255)};
+};
 co.RGBtoXYZ = function (r, g, b) {
     if (g === undefined && b === undefined) { // arguments.length === 1
         if (this.util.isRGB(arguments[0])) {
@@ -525,6 +548,31 @@ co.RGBtoXYZ = function (r, g, b) {
     return {x: x, y: y, z: z};
 };
 
+co.LABtoXYZ = function (l, a, b) {
+    // from http://www.easyrgb.com/
+    if (a === undefined && b === undefined) { // arguments.length === 1
+        if (this.util.isLAB(arguments[0])) {
+            return this.LABtoXYZ(arguments[0].l, arguments[0].a, arguments[0].b);
+        } else {
+            return this.LABtoXYZ(arguments[0][0], arguments[0][1], arguments[0][2]);
+        }
+    }
+    
+    var y = (l + 16) / 116;
+    var x = a / 500 + y;
+    var z = y - b / 200;
+    var transform = function (c) {
+        var ccc = Math.pow(c, 3);
+        return (ccc > 0.008856) ? ccc : (c - 16 / 116) / 7.787;
+    };
+   
+    x = 95.047 * transform(x);
+    y = 100.0 * transform(y);
+    z = 108.883 * transform(z);
+    
+    return {x: x, y: y, z: z};    
+};
+
 co.XYZtoLAB = function (x, y, z) {
     if (y === undefined && z === undefined) { // arguments.length === 1
         if (this.util.isXYZ(arguments[0])) {
@@ -532,16 +580,17 @@ co.XYZtoLAB = function (x, y, z) {
         } else {
             return this.XYZtoLAB(arguments[0][0], arguments[0][1], arguments[0][2]);
         }
-    }    
-    var rx = 95.047;
-    var ry = 100;
-    var rz = 108.883;
+    }
+    x /= 95.047;
+    y /= 100.0;
+    z /= 108.883;
+
     var transform = function (c) {
         return (c > 0.008856) ? Math.pow(c, 1/3) : (7.787 * c) + (16 / 116);
     };
-    var tx = transform(x / rx);
-    var ty = transform(x / ry);
-    var tz = transform(x / rz);
+    var tx = transform(x);
+    var ty = transform(y);
+    var tz = transform(z);
     var l = (116 * ty) - 16;
     var a = 500 * (tx - ty);
     var b = 200 * (ty - tz);
