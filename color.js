@@ -715,13 +715,13 @@ co.RGBtoHSL = function (r, g, b) {
     return this.RGBtoHLS(r, g, b);
 };
 
-co.distance = co.deltaE_CIE2000 = function (color1, color2, kl, kc, kh) { // see http://www.brucelindbloom.com/
-    if (!kl) { kl = 1; }
-    if (!kc) { kc = 1; }
-    if (!kh) { kh = 1; }
+co.distance = co.deltaE_CIE2000 = function (color1, color2, kL, kC, kH) { // see http://www.brucelindbloom.com/
+    if (!kL) { kL = 1; }
+    if (!kC) { kC = 1; }
+    if (!kH) { kH = 1; }
     var sqrt = Math.sqrt;
     var pow = Math.pow;
-    var sq = function (num) { return Math.pow(num, 2); };
+    var sq = function (num) { return num * num; };
     var p25_7 = pow(25,7);
     var toDegrees = function (radian) {
         return radian * 180.0 / Math.PI; 
@@ -735,11 +735,11 @@ co.distance = co.deltaE_CIE2000 = function (color1, color2, kl, kc, kh) { // see
     var l1 = lab1.l, a1 = lab1.a, b1 = lab1.b;
     var l2 = lab2.l, a2 = lab2.a, b2 = lab2.b;
     
-    var ml = (l1 + l2) / 2;
+    var lBar = (l1 + l2) / 2;
     var c1 = sqrt(sq(a1) + sq(b1));
     var c2 = sqrt(sq(a2) + sq(b2));
-    var mc = (c1 + c2) / 2;
-    var c7 = pow(mc, 7);
+    var cBar = (c1 + c2) / 2;
+    var c7 = pow(cBar, 7);
     var g = (1 - sqrt(c7 / (c7 + p25_7))) / 2;
     
     // adjust a* values
@@ -747,7 +747,7 @@ co.distance = co.deltaE_CIE2000 = function (color1, color2, kl, kc, kh) { // see
     var a2p = a2 * (1 + g);    
     var c1p = sqrt(sq(a1p) + sq(b1));
     var c2p = sqrt(sq(a2p) + sq(b2));
-    var mcp = (c1p + c2p) / 2;
+    var cpBar = (c1p + c2p) / 2;
     
     // calculate hue angles
     var h1 = toDegrees(Math.atan2(b1, a1p));
@@ -755,46 +755,44 @@ co.distance = co.deltaE_CIE2000 = function (color1, color2, kl, kc, kh) { // see
     var h2 = toDegrees(Math.atan2(b2, a2p));
     if (h2 < 0) { h2 += 360; }
     
-    var mh = (h1 + h2) / 2;
+    var hBar = (h1 + h2) / 2;
     var adh = Math.abs(h1 - h2);
     if (adh > 180) {
-        mh += 180;
+        hBar += 180;
     }
     
-    var t1 = 1 - 0.17 * Math.cos(toRadians(mh - 30));
-    var t2 = 0.24 * Math.cos(toRadians(2 * mh));
-    var t3 = 0.32 * Math.cos(toRadians(3 * mh + 6));
-    var t4 = -0.2 * Math.cos(toRadians(4 * mh - 63));
-    var t = t1 + t2 + t3 + t4; //xTX
+    var t1 = 1 - 0.17 * Math.cos(toRadians(hBar - 30));
+    var t2 = 0.24 * Math.cos(toRadians(2 * hBar));
+    var t3 = 0.32 * Math.cos(toRadians(3 * hBar + 6));
+    var t4 = -0.2 * Math.cos(toRadians(4 * hBar - 63));
+    var t = t1 + t2 + t3 + t4;
     
-    var dh = h2 - h1;
+    var dH = h2 - h1;
     if (adh > 180) {
         if (h2 > h1) {
-            dh -= 360;
+           dH -= 360;
         } else {
-            dh += 360;
+           dH += 360;
         }
     }
+    dH = 2 * sqrt(c1p * c2p) * Math.sin(toRadians(dH / 2));
     
+    var dL = l2 - l1;
+    var dC = c2p - c1p;
     
-    // calculate delta L*
-    var dl = l2 - l1;
-    var dc = c2p - c1p;
-    var dh = 2 * sqrt(c1p * c2p) * Math.sin(toRadians(dh / 2));
-    
-    var sl = 1 + 0.015 * sq(ml - 50) / sqrt(20 + sq(ml - 50));
-    var sc = 1 + 0.045 * mcp;
-    var sh = 1 + 0.015 * mcp * t;
-    var dthe = 30 * Math.exp(-1 * sq((mh - 275) / 25));
-    var cp7 = pow(mcp, 7);
+    var sL = 1 + 0.015 * sq(lBar - 50) / sqrt(20 + sq(lBar - 50));
+    var sC = 1 + 0.045 * cpBar;
+    var sH = 1 + 0.015 * cpBar * t;
+    var dTheta = 30 * Math.exp(-1 * sq((hBar - 275) / 25));
+    var cp7 = pow(cpBar, 7);
     var rc = 2 * sqrt(cp7 / (cp7 + p25_7));
-    var rt = -1 * rc * Math.sin(toRadians(2 * dthe));
+    var rt = -1 * rc * Math.sin(toRadians(2 * dTheta));
     
-    var vl = sq(dl / kl * sl);
-    var vc = sq(dc / kc * sc);
-    var vh = sq(dh / kh * sh);
+    var vL = sq(dL) / sq(kL * sL);
+    var vC = sq(dC) / sq(kC * sC);
+    var vH = sq(dH) / sq(kH * sH);
     
-    return sqrt(vl + vc + vh + rt * dc  * dh / (kc * sc * kh * sh));
+    return sqrt(vL + vC + vH + rt * dC  * dH / (kC * sC * kH * sH));
     
 };
 co.deltaE_CIE1976 = function (color1, color2) { // see http://www.brucelindbloom.com/
