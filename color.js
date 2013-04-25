@@ -697,11 +697,14 @@ co.RGBtoHSL = function (r, g, b) {
     return this.RGBtoHLS(r, g, b);
 };
 
-co.distance = co.deltaE_CIE2000 = function (color1, color2) {
+co.distance = co.deltaE_CIE2000 = function (color1, color2, kl, kc, kh) {
+    if (!kl) { kl = 1; }
+    if (!kc) { kc = 1; }
+    if (!kh) { kh = 1; }
     var sqrt = Math.sqrt;
     var pow = Math.pow;
     var sq = function (num) { return Math.pow(num, 2); };
-    var log10 = function (num) { return Math.log(num) / Math.LN10; };
+    var p25_7 = pow(25,7);
     var toDegrees = function (radian) {
         return radian * 180.0 / Math.PI; 
     };
@@ -711,94 +714,138 @@ co.distance = co.deltaE_CIE2000 = function (color1, color2) {
     
     var lab1 = new Color(color1).lab();
     var lab2 = new Color(color2).lab();
-        
-    var cab1 = sqrt(sq(lab1.a) + sq(lab1.b));
-    var cab2 = sqrt(sq(lab2.a) + sq(lab2.b));
+    var l1 = lab1.l, a1 = lab1.a, b1 = lab1.b;
+    var l2 = lab2.l, a2 = lab2.a, b2 = lab2.b;
     
-    var meanc = (cab1 + cab2) / 2;
-        
-    var logmeanc = log10(meanc);
-    var log25 = log10(25.0);
-    var cratio = pow(10, logmeanc * 7 - log10(pow(10, logmeanc * 7) + pow(10, log25 * 7)));
-    var g = 0.5 * (1 - cratio);
+    var ml = (l1 + l2) / 2;
+    var c1 = sqrt(sq(a1) + sq(b1));
+    var c2 = sqrt(sq(a2) + sq(b2));
+    var mc = (c1 + c2) / 2;
+    var c7 = pow(mc, 7);
+    var g = (1 - sqrt(c7 / (c7 + p25_7))) / 2;
     
     // adjust a* values
-    lab1.a = (1 + g) * lab1.a;
-    lab2.a = (1 + g) * lab2.a;
-    cab1 = sqrt(sq(lab1.a) + sq(lab1.b));
-    cab2 = sqrt(sq(lab2.a) + sq(lab2.b));
-    var deltac = cab1 - cab2;
+    var a1p = a1 * (1 + g);
+    var a2p = a2 * (1 + g);    
+    var c1p = sqrt(sq(a1p) + sq(b1));
+    var c2p = sqrt(sq(a2p) + sq(b2));
+    var mcp = (c1p + c2p) / 2;
+    
+    // calculate hue angles
+    var h1 = toDegrees(Math.atan2(b1, a1p));
+    if (h1 < 0) { h1 += 360; }
+    var h2 = toDegrees(Math.atan2(b2, a2p));
+    if (h2 < 0) { h2 += 360; }
+    
+    var mh = (h1 + h2) / 2;
+    var adh = Math.abs(h1 - h2);
+    if (adh > 180) {
+        mh += 180;
+    }
+    
+    var t1 = 1 - 0.17 * Math.cos(toRadians(mh - 30));
+    var t2 = 0.24 * Math.cos(toRadians(2 * mh));
+    var t3 = 0.32 * Math.cos(toRadians(3 * mh + 6));
+    var t4 = -0.2 * Math.cos(toRadians(4 * mh - 63));
+    var t = t1 + t2 + t3 + t4; //xTX
+    
+    var dh = h2 - h1;
+    if (adh > 180) {
+        if (h2 > h1) {
+            dh -= 360;
+        } else {
+            dh += 360;
+        }
+    }
+    
     
     // calculate delta L*
-    var deltal = lab1.l - lab2.l;
-
-    // calculate hue angles
-    var h1 = toDegrees(Math.atan2(lab1.a, lab1.b));
-    var h2 = toDegrees(Math.atan2(lab2.a, lab2.b));
-    if (h1 < 0) { h1 = h1 + 360; }
-    if (h2 < 0) { h2 = h2 + 360; }
+    var dl = l2 - l1;
+    var dc = c2p - c1p;
+    var dh = 2 * sqrt(c1p * c2p) * Math.sin(toRadians(dh / 2));
     
-    // calculate delta h and mean h
-    var deltah = h1 - h2;
-    var meanh = h1 + h2;
-    if (deltah > 180) {
-        deltah = deltah - 360;
-        meanh = meanh - 360;
-    }
-    if (deltah < -180) {
-        deltah = deltah + 360;
-        meanh = meanh + 360;
-    }
+    var sl = 1 + 0.015 * sq(ml - 50) / sqrt(20 + sq(ml - 50));
+    var sc = 1 + 0.045 * mcp;
+    var sh = 1 + 0.015 * mcp * t;
+    var dthe = 30 * Math.exp(-1 * sq((mh - 275) / 25));
+    var cp7 = pow(mcp, 7);
+    var rc = 2 * sqrt(cp7 / (cp7 + p25_7));
+    var rt = -1 * rc * Math.sin(toRadians(2 * dthe));
     
-    var delth = 2 * (sqrt(cab1 * cab2)) * Math.sin(toRadians(deltah / 2));
-    var deltal = lab1.l = lab2.l;
-    var deltaE = sqrt(sq(deltal) + sq(deltac) + sq(delth));
-    var deltaha = sq(deltaE) - sq(deltal) - sq(deltac);
-    if (deltaha < 0) { deltaha = 0; }
+    var vl = sq(dl / kl * sl);
+    var vc = sq(dc / kc * sc);
+    var vh = sq(dh / kh * sh);
     
-    delth = sqrt(deltaha);
-    delth = 2 * sqrt(cab1 * cab2) * Math.sin(toRadians(deltah / 2));
-    
-    var meanl = (lab1.l + lab2.l) / 2;
-    meanc = (cab1 + cab2) / 2;
-    meanh = meanh / 2;
-    
-    // compute the weighting functions
-    var sl = 1 + 0.015 * sq(meanl - 50) / sqrt(20 + sq(meanl - 50));
-    var sc = 1 + 0.045 * meanc;
-    
-    var t1 = 1 - 0.17 * Math.cos(toRadians(meanh - 30));
-    var t2 = 0.24 * Math.cos(toRadians(2 * meanh));
-    var t3 = 0.32 * Math.cos(toRadians(3 * meanh + 6));
-    var t4 = -0.2 * Math.cos(toRadians(4 * meanh - 63));
-    var t = t1 + t2 + t3 + t4;
-    
-    var sh = 1 + 0.015 * meanc * t;
-    var sr = sc * sh;
-    logmeanc = log10(meanc);
-    var rc_numerator = pow(10, logmeanc * 7);
-    var rc_denominator = rc_numerator + Math.pow(10, log25 * 7);
-    var rc = 2 * sqrt(rc_numerator / rc_denominator);
-    
-    var dthet = 30 * Math.exp(-1 * sq((meanh - 275) / 25));
-    var rt = -Math.sin(2 * toRadians(dthet)) * rc;
-    
-    // Now compute deltaV
-    var vl = sq(deltal / sl);
-    var vc = sq(deltac / sc);
-    var vh = sq(delth / sh);
-    
-    return sqrt(vl + vc + vh + rt * deltac * delth / sr);
+    return sqrt(vl + vc + vh + rt * dc  * dh / (kc * sc * kh * sh));
     
 };
 co.deltaE_CIE1976 = function (color1, color2) {
-    
+    var sqrt = Math.sqrt;
+    var sq = function (num) { return Math.pow(num, 2); };    
+    var lab1 = new Color(color1).lab();
+    var lab2 = new Color(color2).lab();
+    var l1 = lab1.l, a1 = lab1.a, b1 = lab1.b;
+    var l2 = lab2.l, a2 = lab2.a, b2 = lab2.b;
+    return sqrt(sq(l1 - l2) + sq(a1 - a2) + sq(b1 - b2));
 };
-co.deltaE_CIE1994 = function (color1, color2) {
-    
+co.deltaE_CIE1994 = function (color1, color2, textiles) {
+    var sqrt = Math.sqrt;
+    var sq = function (num) { return Math.pow(num, 2); };    
+    var kl = textiles ? 2 : 1;
+    var kc = 1;
+    var kh = 1;
+    var k1 = textiles ? 0.048 : 0.045;
+    var k2 = textiles ? 0.014 : 0.015;
+    var lab1 = new Color(color1).lab();
+    var lab2 = new Color(color2).lab();
+    var l1 = lab1.l, a1 = lab1.a, b1 = lab1.b;
+    var l2 = lab2.l, a2 = lab2.a, b2 = lab2.b;
+    var dl = l1 - l2;
+    var da = a1 - a2;
+    var db = b1 - b2;
+    var c1 = sqrt(sq(a1) + sq(b1));
+    var c2 = sqrt(sq(a2) + sq(b2));    
+    var dc = c1 - c2;
+    var dhsq = sq(da) + sq(db) - sq(dc);
+    var sl = 1;
+    var sc = 1 + k1 * c1;
+    var sh = 1 + k2 * c1;
+    return sqrt(sq(dl / (kl * sl)) + sq(dc / (kc * sc)) + dhsq / sq(kh * sh));
 };
-co.deltaE_CMC = function (color1, color2) {
-    
+co.deltaE_CMC = function (color1, color2, l, c) {
+    if (!l) { l = 1; }
+    if (!c) { c = 1; }
+    var sqrt = Math.sqrt;
+    var sq = function (num) { return Math.pow(num, 2); };
+    var toDegrees = function (radian) {
+        return radian * 180.0 / Math.PI; 
+    };
+    var toRadians = function (degree) {
+        return degree * Math.PI / 180.0;
+    };    
+    var lab1 = new Color(color1).lab();
+    var lab2 = new Color(color2).lab();
+    var l1 = lab1.l, a1 = lab1.a, b1 = lab1.b;
+    var l2 = lab2.l, a2 = lab2.a, b2 = lab2.b;
+    var dl = l1 - l2;
+    var da = a1 - a2;
+    var db = b1 - b2;    
+    var c1 = sqrt(sq(a1) + sq(b1));
+    var c2 = sqrt(sq(a2) + sq(b2));    
+    var dc = c1 - c2;
+    var dhsq = sq(da) + sq(db) - sq(dc);
+    var sl = l1 < 16 ? 0.511 : 0.040975 * l1 / (1 + 0.01765 * l1);
+    var sc = 0.0638 * c1 / (1 + 0.0131 * c1) + 0.638;
+    var c14 = Math.pow(c1, 4);
+    var f = sqrt(c14 / (c14 + 1900));
+    var h1 = toDegrees(Math.atan(b1, a1));
+    if (h1 < 0) { h1 += 360; }
+    if (h1 >= 360) { h1 -= 360; }
+    var t = (h1 >= 164 && h1 <= 345) ?
+        0.56 + Math.abs(0.2 * Math.cos(toRadians(h1 + 168))) :
+        0.36 + Math.abs(0.4 * Math.cos(toRadians(h1 + 35)));
+    var sh = sc * (f * t + 1 - f);
+    return sqrt(sq(dl / (l * sl)) + sq(dc / (c * sc)) + dhsq / sq(sh));
 };
 
 co.blend = co.mix = function (color1, color2, ratio) {
@@ -885,6 +932,8 @@ co.palette = function (colors, levels, func) {
 
 co.palette.presets = {
     // http://cran.r-project.org/web/packages/colorspace/vignettes/hcl-colors.pdf
+    // http://statmath.wu.ac.at/~zeileis/papers/Zeileis+Hornik+Murrell-2009.pdf
+    // http://www.r-bloggers.com/choosing-colour-palettes-part-ii-educated-choices/
     "qualitative": [],
     "sequential": [],
     "diverging": []
