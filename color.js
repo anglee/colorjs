@@ -1,7 +1,7 @@
 co = {};
 co.util = {
     int: function (num) { return parseInt(num, 10); },
-    hex: function (num) { var hex = num.toString(16); return hex.length === 1 ? "0" + hex : hex; },
+    hex: function (num) { num = parseInt(num, 10); var hex = num.toString(16); return hex.length === 1 ? "0" + hex : hex; },
     toDecimal: function (string) { return parseInt(string, 16); },
     isNumber: function (n) { return !isNaN(parseFloat(n)) && isFinite(n); },
     isString: function (obj) { return toString.call(obj) === '[object String]'; },
@@ -45,7 +45,7 @@ Color.prototype.co = co;
 
 Color.prototype.red = function (value) {
     if (arguments.length === 1) {
-        this.r = value;
+        this.r = Math.max(0, Math.min(value, 255));
         return this;
     } else {
         return this.r;
@@ -53,7 +53,7 @@ Color.prototype.red = function (value) {
 };
 Color.prototype.green = function (value) {
     if (arguments.length === 1) {
-        this.g = value;
+        this.g = Math.max(0, Math.min(value, 255));
         return this;
     } else {
         return this.g;
@@ -61,7 +61,7 @@ Color.prototype.green = function (value) {
 };
 Color.prototype.blue = function (value) {
     if (arguments.length === 1) {
-        this.b = value;
+        this.b = Math.max(0, Math.min(value, 255));
         return this;
     } else {
         return this.b;
@@ -76,7 +76,26 @@ Color.prototype.hue = function () {
         this.b = rgb.b;
         return this;
     } else {
-        return this.hsl().l;
+        return this.hsl().h;
+    }
+};
+Color.prototype.hueAngle = function () {
+    if (arguments.length === 1) {
+        var value = arguments[0];
+        while (value >= 360) {
+            value -= 360;
+        }
+        while (value < 0) {
+            value += 360;
+        }
+        var hsl = this.hsl();        
+        var rgb = this.co.HSLtoRGB(value / 360, hsl.g, hsl.l);
+        this.r = rgb.r;
+        this.g = rgb.g;
+        this.b = rgb.b;
+        return this;
+    } else {
+        return this.hsl().h * 360;
     }
 };
 Color.prototype.saturation = function () {
@@ -102,7 +121,8 @@ Color.prototype.lightness = function () {
 };
 Color.prototype.rgb = function (r, g, b) {
     if (arguments.length === 0) {
-        return {r: this.r, g: this.g, b: this.b};
+        var int = this.co.util.int;
+        return {r: int(this.r), g: int(this.g), b: int(this.b)};
     } else {
         var temp = new Color(r, g, b);
         this.r = temp.r;
@@ -112,7 +132,8 @@ Color.prototype.rgb = function (r, g, b) {
     }
 };
 Color.prototype.rgbArray = function () {
-    return [this.r, this.g, this.b];
+    var int = this.util.int;
+    return [int(this.r), int(this.g), int(this.b)];
 };
 Color.prototype.hsb = function () {
     return this.co.RGBtoHSB(this.r, this.g, this.b);
@@ -253,7 +274,7 @@ co.RGBtoHEX = function (r, g, b) {
             return this.RGBtoHEX(arguments[0][0], arguments[0][1], arguments[0][2]);
         }
     } else if (arguments.length === 3) {
-        //  or 3 args, r, g, b
+        //  or 3 args, r, g, b        
         return "#" + toHex(r) + toHex(g) + toHex(b);
     }
 };
@@ -296,7 +317,7 @@ co.HSVtoRGB = function (h, s, v) {
     var int = this.util.int;
     var r = 0, g = 0, b = 0; 
     if (s === 0) {
-        r = g = b = int(v * 255.0 + 0.5);
+        r = g = b = v;
     } else {
         h = (h - Math.floor(h)) * 6.0;
         var f = h - Math.floor(h);
@@ -305,38 +326,38 @@ co.HSVtoRGB = function (h, s, v) {
         var t = v * (1.0 - (s * (1.0 - f)));
         switch (int(h)) {
             case 0:
-                r = int(v * 255.0 + 0.5);
-                g = int(t * 255.0 + 0.5);
-                b = int(p * 255.0 + 0.5);
+                r = v;
+                g = t;
+                b = p;
                 break;
             case 1:
-                r = int(q * 255.0 + 0.5);
-                g = int(v * 255.0 + 0.5);
-                b = int(p * 255.0 + 0.5);
+                r = q;
+                g = v;
+                b = p;
                 break;
             case 2:
-                r = int(p * 255.0 + 0.5);
-                g = int(v * 255.0 + 0.5);
-                b = int(t * 255.0 + 0.5);
+                r = p;
+                g = v;
+                b = t;
                 break;
             case 3:
-                r = int(p * 255.0 + 0.5);
-                g = int(q * 255.0 + 0.5);
-                b = int(v * 255.0 + 0.5);
+                r = p;
+                g = q;
+                b = v;
                 break;
             case 4:
-                r = int(t * 255.0 + 0.5);
-                g = int(p * 255.0 + 0.5);
-                b = int(v * 255.0 + 0.5);
+                r = t;
+                g = p;
+                b = v;
                 break;
             case 5:
-                r = int(v * 255.0 + 0.5);
-                g = int(p * 255.0 + 0.5);
-                b = int(q * 255.0 + 0.5);
+                r = v;
+                g = p;
+                b = q;
                 break;
         }
     }
-    return {r: r, g: g, b: b};
+    return {r: r * 255, g: g * 255, b: b * 255};
 };
 
 co.RGBtoHSB = function (r, g, b) {
@@ -402,11 +423,10 @@ co.YIQtoRGB = function (y, i, q) {
             return this.YIQtoRGB(arguments[0][0], arguments[0][1], arguments[0][2]);
         }
     }    
-    var int = this.util.int;
     var r = y +  0.9563 * i +  0.6210 * q;
     var g = y + -0.2721 * i + -0.6474 * q;
     var b = y + -1.1070 * i +  1.7046 * q;
-    return {r: int(r * 255), g: int(g * 255), b: int(b * 255)};
+    return {r: r * 255, g: g * 255, b: b * 255};
 };
 
 co.RGBtoYIQ = function (r, g, b) {
@@ -434,12 +454,11 @@ co.YUVtoRGB = function (y, u, v) {
         } else {
             return this.YUVtoRGB(arguments[0][0], arguments[0][1], arguments[0][2]);
         }
-    }    
-    var int = this.util.int;
+    }
     var r = y + 1.13983 * v;
     var g = y - 0.39465 * u - 0.5806 * v;
     var b = y + 2.03211 * u;
-    return {r: int(r * 255), g: int(g * 255), b: int(b * 255)};
+    return {r: r * 255, g: g * 255, b: b * 255};
 };
 
 co.RGBtoYUV = function (r, g, b) {
@@ -470,7 +489,7 @@ co.CMYKtoRGB = function (c, m, y, k) {
     var r = (1 - c) * (1 - k);
     var g = (1 - c) * (1 - k);
     var b = (1 - c) * (1 - k);
-    return {r: int(r * 255), g: int(g * 255), b: int(b * 255)};
+    return {r: r * 255, g: g * 255, b: b * 255};
 };
 
 co.RGBtoCMYK = function (r, g, b) {
@@ -497,15 +516,15 @@ co.RGBtoCMYK = function (r, g, b) {
 };
 
 co.LABtoRGB = function (l, a, b) {
-    // TODO
+    var xyz = this.LABtoXYZ(l, a, b);
+    return co.XYZtoRGB(xyz);
 };
 
 co.RGBtoLAB = function (r, g, b) {
     var xyz = this.RGBtoXYZ(r, g, b);
     return co.XYZtoLAB(xyz);
 };
-co.XYZtoRGB = function (x, y, z) {
-    // from http://www.easyrgb.com/
+co.XYZtoRGB = function (x, y, z) { // see http://www.easyrgb.com/
     if (x === undefined && y === undefined) { // arguments.length === 1
         if (this.util.isXYZ(arguments[0])) {
             return this.XYZtoRGB(arguments[0].x, arguments[0].y, arguments[0].z);
@@ -526,7 +545,7 @@ co.XYZtoRGB = function (x, y, z) {
     r = transform(r);
     g = transform(g);
     b = transform(b);
-    return {r: int(r * 255), g: int(g * 255), b: int(b * 255)};
+    return {r: r * 255, g: g * 255, b: b * 255};
 };
 co.RGBtoXYZ = function (r, g, b) {
     if (g === undefined && b === undefined) { // arguments.length === 1
@@ -548,8 +567,7 @@ co.RGBtoXYZ = function (r, g, b) {
     return {x: x, y: y, z: z};
 };
 
-co.LABtoXYZ = function (l, a, b) {
-    // from http://www.easyrgb.com/
+co.LABtoXYZ = function (l, a, b) { // see http://www.easyrgb.com/
     if (a === undefined && b === undefined) { // arguments.length === 1
         if (this.util.isLAB(arguments[0])) {
             return this.LABtoXYZ(arguments[0].l, arguments[0].a, arguments[0].b);
@@ -637,7 +655,7 @@ co.HLStoRGB = function (h, l, s) {
         b = hue2rgb(p, q, h - 1 / 3);
     }
 
-    return {r: int(r * 255), g: int(g * 255), b: int(b * 255)};
+    return {r: r * 255, g: g * 255, b: b * 255};
 };
 
 co.RGBtoHLS = function (r, g, b) {
@@ -697,7 +715,7 @@ co.RGBtoHSL = function (r, g, b) {
     return this.RGBtoHLS(r, g, b);
 };
 
-co.distance = co.deltaE_CIE2000 = function (color1, color2, kl, kc, kh) {
+co.distance = co.deltaE_CIE2000 = function (color1, color2, kl, kc, kh) { // see http://www.brucelindbloom.com/
     if (!kl) { kl = 1; }
     if (!kc) { kc = 1; }
     if (!kh) { kh = 1; }
@@ -779,7 +797,7 @@ co.distance = co.deltaE_CIE2000 = function (color1, color2, kl, kc, kh) {
     return sqrt(vl + vc + vh + rt * dc  * dh / (kc * sc * kh * sh));
     
 };
-co.deltaE_CIE1976 = function (color1, color2) {
+co.deltaE_CIE1976 = function (color1, color2) { // see http://www.brucelindbloom.com/
     var sqrt = Math.sqrt;
     var sq = function (num) { return Math.pow(num, 2); };    
     var lab1 = new Color(color1).lab();
@@ -788,7 +806,7 @@ co.deltaE_CIE1976 = function (color1, color2) {
     var l2 = lab2.l, a2 = lab2.a, b2 = lab2.b;
     return sqrt(sq(l1 - l2) + sq(a1 - a2) + sq(b1 - b2));
 };
-co.deltaE_CIE1994 = function (color1, color2, textiles) {
+co.deltaE_CIE1994 = function (color1, color2, textiles) { // see http://www.brucelindbloom.com/
     var sqrt = Math.sqrt;
     var sq = function (num) { return Math.pow(num, 2); };    
     var kl = textiles ? 2 : 1;
@@ -812,7 +830,7 @@ co.deltaE_CIE1994 = function (color1, color2, textiles) {
     var sh = 1 + k2 * c1;
     return sqrt(sq(dl / (kl * sl)) + sq(dc / (kc * sc)) + dhsq / sq(kh * sh));
 };
-co.deltaE_CMC = function (color1, color2, l, c) {
+co.deltaE_CMC = function (color1, color2, l, c) { // see http://www.brucelindbloom.com/
     if (!l) { l = 1; }
     if (!c) { c = 1; }
     var sqrt = Math.sqrt;
