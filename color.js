@@ -48,7 +48,7 @@ Color.prototype.red = function (value) {
         this.r = Math.max(0, Math.min(value, 255));
         return this;
     } else {
-        return this.r;
+        return this.co.util.int(this.r);
     }
 };
 Color.prototype.green = function (value) {
@@ -56,7 +56,7 @@ Color.prototype.green = function (value) {
         this.g = Math.max(0, Math.min(value, 255));
         return this;
     } else {
-        return this.g;
+        return this.co.util.int(this.g);
     }
 };
 Color.prototype.blue = function (value) {
@@ -64,7 +64,7 @@ Color.prototype.blue = function (value) {
         this.b = Math.max(0, Math.min(value, 255));
         return this;
     } else {
-        return this.b;
+        return this.co.util.int(this.b);
     }
 };
 Color.prototype.hue = function () {
