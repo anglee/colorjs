@@ -7,6 +7,7 @@ co.util = {
     isString: function (obj) { return toString.call(obj) === '[object String]'; },
     isRGB: function (obj) { return obj.hasOwnProperty('r') && obj.hasOwnProperty('g') && obj.hasOwnProperty('b'); },
     isCMYK: function (obj) { return obj.hasOwnProperty('c') && obj.hasOwnProperty('m') && obj.hasOwnProperty('y') && obj.hasOwnProperty('k'); },
+    isHCL: function (obj) { return obj.hasOwnProperty('h') && obj.hasOwnProperty('c') && obj.hasOwnProperty('l'); },
     isHSV: function (obj) { return obj.hasOwnProperty('h') && obj.hasOwnProperty('s') && obj.hasOwnProperty('v'); },
     isHSB: function (obj) { return obj.hasOwnProperty('h') && obj.hasOwnProperty('s') && obj.hasOwnProperty('b'); },
     isHSL: function (obj) { return obj.hasOwnProperty('h') && obj.hasOwnProperty('s') && obj.hasOwnProperty('l'); },
@@ -14,6 +15,7 @@ co.util = {
     isHex: function (obj) { return this.isString(obj) && obj.charAt(0) === "#" && obj.length === 7; },
     isShortHex: function (obj) { return this.isString(obj) && obj.charAt(0) === "#" && obj.length === 4; },
     isLAB: function (obj) { return obj.hasOwnProperty('l') && obj.hasOwnProperty('a') && obj.hasOwnProperty('b'); },
+    isLUV: function (obj) { return obj.hasOwnProperty('l') && obj.hasOwnProperty('u') && obj.hasOwnProperty('v'); },
     isXYZ: function (obj) { return obj.hasOwnProperty('x') && obj.hasOwnProperty('y') && obj.hasOwnProperty('z'); },
     isYIQ: function (obj) { return obj.hasOwnProperty('y') && obj.hasOwnProperty('i') && obj.hasOwnProperty('q'); },
     isYUV: function (obj) { return obj.hasOwnProperty('y') && obj.hasOwnProperty('u') && obj.hasOwnProperty('v'); },
@@ -156,6 +158,13 @@ Color.prototype.hslArray = function () {
     var hsl = this.co.RGBtoHSL(this.r, this.g, this.b);
     return [hsl.h, hsl.s, hsl.l];
 };
+Color.prototype.hcl = function () {
+    return this.co.RGBtoHCL(this.r, this.g, this.b);
+};
+Color.prototype.hclArray = function () {
+    var hcl = this.co.RGBtoHCL(this.r, this.g, this.b);
+    return [hcl.h, hcl.c, hcl.l];
+};
 Color.prototype.hls = function () {
     return this.co.RGBtoHLS(this.r, this.g, this.b);
 };
@@ -198,6 +207,14 @@ Color.prototype.labArray = function () {
     var lab = this.co.RGBtoLAB(this.r, this.g, this.b);
     return [lab.l, lab.a, lab.b];
 };
+Color.prototype.luv = function () {
+    return this.co.RGBtoLUV(this.r, this.g, this.b);
+};
+Color.prototype.luvArray = function () {
+    var luv = this.co.RGBtoLUV(this.r, this.g, this.b);
+    return [luv.l, luv.u, luv.v];
+};
+
 Color.prototype.hex = function () {
     return this.co.RGBtoHEX(this.r, this.g, this.b);
 };
@@ -241,6 +258,9 @@ co.hsl = function (h, s, l) { // create Color from hsl
 co.hls = function (h, l, s) { // create Color from hls
     return this.rgb(this.HSLtoRGB(h, s, l));
 };
+co.hcl = function (h, c, l) { // create Color from hsl
+    return this.rgb(this.HCLtoRGB(h, c, l));
+};
 co.cmyk = function (c, m, y, k) { // create Color from cmyk
     return this.rgb(this.CMYKtoRGB(c, m, y, k));
 };
@@ -249,6 +269,9 @@ co.yiq = function (y, i, q) {
 };
 co.yuv = function (y, u, v) {
     return this.rgb(this.YUVtoRGB(y, u, v));
+};
+co.luv = function (l, u, v) {
+    return this.rgb(this.LUVtoRGB(l, u, v));
 };
 co.hex = function (hex) { // create Color from hex, e.g. #ff0000
     var rgb = this.HEXtoRGB(hex);
@@ -524,7 +547,11 @@ co.RGBtoLAB = function (r, g, b) {
     var xyz = this.RGBtoXYZ(r, g, b);
     return co.XYZtoLAB(xyz);
 };
-co.XYZtoRGB = function (x, y, z) { // see http://www.easyrgb.com/
+co.LABtoRGB = function (l, a, b) {
+    var xyz = this.LABtoXYZ(l, a, b);
+    return co.XYZtoRGB(xyz);
+};
+co.XYZtoRGB = function (x, y, z) {
     if (x === undefined && y === undefined) { // arguments.length === 1
         if (this.util.isXYZ(arguments[0])) {
             return this.XYZtoRGB(arguments[0].x, arguments[0].y, arguments[0].z);
@@ -536,17 +563,20 @@ co.XYZtoRGB = function (x, y, z) { // see http://www.easyrgb.com/
     y /= 100.0;        //Y from 0 to 100.000
     z /= 100.0;        //Z from 0 to 108.883
 
-    var r = x *  3.2406 + y * -1.5372 + z * -0.4986;
-    var g = x * -0.9689 + y *  1.8758 + z *  0.0415;
-    var b = x *  0.0557 + y * -0.2040 + z *  1.0570;
+    // from XYZ to sRGB
+    var r = x *  3.2404542 + y * -1.5371385 + z * -0.4985314;
+    var g = x * -0.9692660 + y *  1.8760108 + z *  0.0415560;
+    var b = x *  0.0556434 + y * -0.2040259 + z *  1.0572252;
     var transform = function(c) {
         return (c > 0.0031308) ? 1.055 * Math.pow(r, 1 / 2.4) - 0.055 : (c * 12.92);
     };
+    // from sRGB tp RGB
     r = transform(r);
     g = transform(g);
     b = transform(b);
     return {r: r * 255, g: g * 255, b: b * 255};
 };
+
 co.RGBtoXYZ = function (r, g, b) {
     if (g === undefined && b === undefined) { // arguments.length === 1
         if (this.util.isRGB(arguments[0])) {
@@ -556,18 +586,75 @@ co.RGBtoXYZ = function (r, g, b) {
         }
     }    
     var transform = function(c) {
-        return (c > 0.0405) ? Math.pow((c + 0.055) / 1.055, 2.4) : (c / 12.92);
+        return (c > 0.04045) ? Math.pow((c + 0.055) / 1.055, 2.4) : (c / 12.92);
     };
-    var tr = transform(r / 255) * 100;
-    var tg = transform(g / 255) * 100;
-    var tb = transform(b / 255) * 100;
-    var x = tr * 0.4124 + tg * 0.3576 + tb * 0.1805;
-    var y = tr * 0.2126 + tg * 0.7152 + tb * 0.0722;
-    var z = tr * 0.0193 + tg * 0.1192 + tb * 0.9505;
+    // convert to linear RGB (sRGB)
+    var sr = transform(r / 255) * 100;
+    var sg = transform(g / 255) * 100;
+    var sb = transform(b / 255) * 100;
+    // then from sRGB to XYZ
+    var x = sr * 0.4124564 + sg * 0.3575761 + sb * 0.1804375;
+    var y = sr * 0.2126729 + sg * 0.7151522 + sb * 0.0721750;
+    var z = sr * 0.0193339 + sg * 0.1191920 + sb * 0.9503041;
     return {x: x, y: y, z: z};
 };
+co.LUVtoXYZ = function(l, u, v) {
+    if (u === undefined && v === undefined) { // arguments.length === 1
+        if (this.util.isLUV(arguments[0])) {
+            return this.LUVtoXYZ(arguments[0].l, arguments[0].u, arguments[0].v);
+        } else {
+            return this.LUVtoXYZ(arguments[0][0], arguments[0][1], arguments[0][2]);
+        }
+    }    
+    var xr = 0.96422;
+    var yr = 1;
+    var zr = 0.82521;
+    var k = 24389.0 / 27.0;
+    var y = (l > 8.0) ? Math.pow((l + 16.0) / 116.0, 3.0) : (l / k);
+    var u0 = (4.0 * xr) / (xr + 15.0 * yr + 3.0 * zr);
+    var v0 = (9.0 * yr) / (xr + 15.0 * yr + 3.0 * zr);
 
-co.LABtoXYZ = function (l, a, b) { // see http://www.easyrgb.com/
+    var a = (((52.0 * l) / (u + 13.0 * l * u0)) - 1.0) / 3.0;
+    var b = -5.0 * y;
+    var c = -1.0 / 3.0;
+    var d = y * (((39.0 * l) / (v + 13.0 * l * v0)) - 5.0);
+
+    var x = (d - b) / (a - c);
+    var z = x * a + b;
+    return {x: x, y: y, z: z};
+};
+co.XYZtoLUV = function(x, y, z) {
+    if (y === undefined && z === undefined) { // arguments.length === 1
+        if (this.util.isXYZ(arguments[0])) {
+            return this.XYZtoLAB(arguments[0].x, arguments[0].y, arguments[0].z);
+        } else {
+            return this.XYZtoLAB(arguments[0][0], arguments[0][1], arguments[0][2]);
+        }
+    }
+    var xr = 0.96422;
+    var yr = 1;
+    var zr = 0.82521;
+    var den = x + 15.0 * y + 3.0 * z;
+    var up = (den > 0.0) ? ((4.0 * x) / den) : 0.0;
+    var vp = (den > 0.0) ? ((9.0 * y) / den) : 0.0;
+    var urp = (4.0 * xr) / (xr + 15.0 * yr + 3.0 * zr);
+    var vrp = (9.0 * yr) / (xr + 15.0 * yr + 3.0 * zr);
+    var yr = y / yr;
+    var eps = 216.0 / 24398.0;
+    var k = 24389.0 / 27.0;
+    var l = (yr > eps) ? (116.0 * Math.pow(yr, 1.0 / 3.0) - 16.0) : (k * yr);
+    var u = 13.0 * l * (up - urp);
+    var v = 13.0 * l * (vp - vrp);
+    return {l: l, u: u, v: v};
+};
+co.LUVtoHCL = co.LUVtoPolarLUV = function(l, u, v) {
+
+};
+co.HCLtoLUV = co.PolarLUVtoLUV = function(h, c, l) {
+
+};
+
+co.LABtoXYZ = function (l, a, b) {
     if (a === undefined && b === undefined) { // arguments.length === 1
         if (this.util.isLAB(arguments[0])) {
             return this.LABtoXYZ(arguments[0].l, arguments[0].a, arguments[0].b);
