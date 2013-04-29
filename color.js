@@ -23,22 +23,30 @@ co.util = {
     lerp: function (start, end, ratio) { return start === end ? start : start + (end - start ) * ratio; }
 };
 
-function Color(r, g, b) {
+function Color(r, g, b, a) {
     if (g === undefined && b === undefined) { // arguments.length === 1
         if (r === undefined) {
             this.r = 0;
             this.g = 0;
             this.b = 0;
+            this.a = 1.0;
         } else {
             var rgb = this.co.color(arguments[0]);
             this.r = rgb.r;
             this.g = rgb.g;
             this.b = rgb.b;
+            this.a = (rgb.a === undefined)? 1.0 : rgb.a;
         }
     } else if (arguments.length === 3) {
         this.r = Math.max(0, Math.min(r, 255));
         this.g = Math.max(0, Math.min(g, 255));
         this.b = Math.max(0, Math.min(b, 255));
+        this.a = 1.0;
+    } else if (arguments.length === 3) {
+        this.r = Math.max(0, Math.min(r, 255));
+        this.g = Math.max(0, Math.min(g, 255));
+        this.b = Math.max(0, Math.min(b, 255));
+        this.a = Math.max(0.0, Math.min(a, 1.0));
     }
 }
 
@@ -67,6 +75,14 @@ Color.prototype.blue = function (value) {
         return this;
     } else {
         return this.co.util.int(this.b);
+    }
+};
+Color.prototype.alpha = function (value) {
+    if (arguments.length === 1) {
+        this.a = Math.max(0.0, Math.min(value, 1.0));
+        return this;
+    } else {
+        return this.a;
     }
 };
 Color.prototype.hue = function () {
@@ -133,9 +149,55 @@ Color.prototype.rgb = function (r, g, b) {
         return this;
     }
 };
-Color.prototype.rgbArray = function () {
-    var int = this.util.int;
-    return [int(this.r), int(this.g), int(this.b)];
+Color.prototype.rgba = function (r, g, b, a) {
+    if (arguments.length === 0) {
+        var int = this.co.util.int;
+        return {r: int(this.r), g: int(this.g), b: int(this.b), a: this.a};
+    } else {
+        var temp = new Color(r, g, b, a);
+        this.r = temp.r;
+        this.g = temp.g;
+        this.b = temp.b;
+        this.a = temp.a;
+        return this;
+    }
+};
+Color.prototype.rgbArray = function (rgbArray) {
+    if (arguments.length === 0) {
+        var int = this.util.int;
+        return [int(this.r), int(this.g), int(this.b)];
+    } else {
+        this.r = rgbArray[0];
+        this.g = rgbArray[1];
+        this.b = rgbArray[2];
+        return this;
+    }
+};
+
+Color.prototype.rgbString = function () {
+    if (arguments.length === 0) {
+        var int = this.util.int;
+        return "rgb(" + int(this.r) + "," + int(this.g) + "," + int(this.b) + ")";
+    } else {
+        var rgb = rgbString.replace(/ /g, "").replace("rgb(", "").replace(")", "").split(',');
+        this.r = parseInt(rgb[0]);
+        this.g = parseInt(rgb[1]);
+        this.b = parseInt(rgb[2]);
+        return this;
+    }
+};
+Color.prototype.rgbaString = function() {
+    if (arguments.lenth === 0) {
+        var int = this.util.int;
+        return "rgba(" + int(this.r) + "," + int(this.g) + "," + int(this.b) + "," + this.a + ")";
+    } else {
+        var rgba = rgbString.replace(/ /g, "").replace("rgba(", "").replace(")", "").split(',');
+        this.r = parseInt(rgba[0]);
+        this.g = parseInt(rgba[1]);
+        this.b = parseInt(rgba[2]);
+        this.a = parseFloat(rgba[3]);
+        return this;
+    }
 };
 Color.prototype.hsb = function () {
     return this.co.RGBtoHSB(this.r, this.g, this.b);
@@ -157,6 +219,14 @@ Color.prototype.hsl = function () {
 Color.prototype.hslArray = function () {
     var hsl = this.co.RGBtoHSL(this.r, this.g, this.b);
     return [hsl.h, hsl.s, hsl.l];
+};
+Color.prototype.hslString = function () {
+    var hsl = this.co.RGBtoHSL(this.r, this.g, this.b);
+    return "hsl(" +  (hsl.h * 360).toFixed(1) + "," + (hsl.s * 100).toFixed(1) + "%," + (hsl.l * 100).toFixed(1) + "%)";
+};
+Color.prototype.hslaString = function () {
+    var hsl = this.co.RGBtoHSL(this.r, this.g, this.b);   
+    return "hsla(" +  (hsl.h * 360).toFixed(1) + "," + (hsl.s * 100).toFixed(1) + "%," + (hsl.l * 100).toFixed(1) + "," + this.a +"%)";
 };
 Color.prototype.hcl = function () {
     return this.co.RGBtoHCL(this.r, this.g, this.b);
