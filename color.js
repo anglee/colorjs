@@ -388,7 +388,7 @@ co.shortHEXtoRGB = function (hex) {
     return {r: r, g: g, b: b};  
 };
 
-co.HSBtoRGB = function (hue, saturation, brightness) {
+co.HSBtoRGB = function (hue, saturation, brightness) {    
     if (saturation === undefined && brightness === undefined) { // arguments.length === 1
         if (this.util.isHSB(arguments[0])) {
             return this.HSVtoRGB(arguments[0].h, arguments[0].s, arguments[0].b);
@@ -399,6 +399,7 @@ co.HSBtoRGB = function (hue, saturation, brightness) {
         return this.HSVtoRGB(hue, saturation, brightness);
     }
 };
+
 co.HSVtoRGB = function (h, s, v) {
     if (s === undefined && v === undefined) { // arguments.length === 1
         if (this.util.isHSV(arguments[0])) {
@@ -617,10 +618,6 @@ co.RGBtoLAB = function (r, g, b) {
     var xyz = this.RGBtoXYZ(r, g, b);
     return co.XYZtoLAB(xyz);
 };
-co.LABtoRGB = function (l, a, b) {
-    var xyz = this.LABtoXYZ(l, a, b);
-    return co.XYZtoRGB(xyz);
-};
 co.XYZtoRGB = function (x, y, z) {
     if (x === undefined && y === undefined) { // arguments.length === 1
         if (this.util.isXYZ(arguments[0])) {
@@ -629,7 +626,7 @@ co.XYZtoRGB = function (x, y, z) {
             return this.XYZtoRGB(arguments[0][0], arguments[0][1], arguments[0][2]);
         }
     }
-    x /= 100.0;        //X from 0 to  95.047      (Observer = 2°, Illuminant = D65)
+    x /= 100.0;        //X from 0 to  95.047
     y /= 100.0;        //Y from 0 to 100.000
     z /= 100.0;        //Z from 0 to 108.883
 
@@ -676,9 +673,9 @@ co.LUVtoXYZ = function(l, u, v) {
             return this.LUVtoXYZ(arguments[0][0], arguments[0][1], arguments[0][2]);
         }
     }    
-    var xr = 0.96422;
+    var xr = 0.95047;
     var yr = 1;
-    var zr = 0.82521;
+    var zr = 1.08883;
     var k = 24389.0 / 27.0;
     var y = (l > 8.0) ? Math.pow((l + 16.0) / 116.0, 3.0) : (l / k);
     var u0 = (4.0 * xr) / (xr + 15.0 * yr + 3.0 * zr);
@@ -701,9 +698,9 @@ co.XYZtoLUV = function(x, y, z) {
             return this.XYZtoLAB(arguments[0][0], arguments[0][1], arguments[0][2]);
         }
     }
-    var xr = 0.96422;
+    var xr = 0.95047;
     var yr = 1;
-    var zr = 0.82521;
+    var zr = 1.08883;
     var den = x + 15.0 * y + 3.0 * z;
     var up = (den > 0.0) ? ((4.0 * x) / den) : 0.0;
     var vp = (den > 0.0) ? ((9.0 * y) / den) : 0.0;
@@ -717,12 +714,65 @@ co.XYZtoLUV = function(x, y, z) {
     var v = 13.0 * l * (vp - vrp);
     return {l: l, u: u, v: v};
 };
-co.LUVtoHCL = co.LUVtoPolarLUV = function(l, u, v) {
+
+co.LUVtoRGB = function (l, u, v) {
+    var xyz = this.LUVtoXYZ(l, u, v);
+    return co.XYZtoRGB(xyz);
+};
+
+co.RGBtoLUV = function (r, g, b) {
+    var xyz = this.RGBtoXYZ(r, g, b);
+    return co.XYZtoLUV(xyz);
+};
+
+co.LUVtoHCL = co.LUVtoPolarLUV = function(L, U, V) {
+    if (U === undefined && V === undefined) { // arguments.length === 1
+        if (this.util.isLUV(arguments[0])) {
+            return this.LUVtoHCL(arguments[0].l, arguments[0].u, arguments[0].v);
+        } else {
+            return this.LUVtoHCL(arguments[0][0], arguments[0][1], arguments[0][2]);
+        }
+    }     
+    var toDegrees = function (radian) {
+        return radian * 180.0 / Math.PI; 
+    };        
+    var l = L;
+    var c = Math.sqrt(U * U + V * V);
+    var h = toDegress(atan2(V, U));
+    while (h > 360) { h -= 360; }
+    while (h < 0) { h += 360; }
+    return {h: h, c: c, l: l};
 
 };
+
 co.HCLtoLUV = co.PolarLUVtoLUV = function(h, c, l) {
-
+    if (c === undefined && l === undefined) { // arguments.length === 1
+        if (this.util.isHCL(arguments[0])) {
+            return this.HCLtoLUV(arguments[0].h, arguments[0].c, arguments[0].l);
+        } else {
+            return this.HCLtoLUV(arguments[0][0], arguments[0][1], arguments[0][2]);
+        }
+    }    
+    var toRadians = function (degree) {
+        return degree * Math.PI / 180.0;
+    };
+    h = toRadians(h);
+    var L = l;
+    var U = c * cos(h);
+    var V = c * sin(h);
+    return {l: L, u: U, v: V};
 };
+
+co.HCLtoRGB = function (h, c, l) {
+    var luv = this.HCLtoLUV(h, c, l);
+    return co.LUVtoRGB(luv);
+};
+
+co.RGBtoHCL = function (r, g, b) {
+    var luv = this.RGBtoLUV(r, g, b);
+    return co.LUVtoHCL(luv);
+};
+
 
 co.LABtoXYZ = function (l, a, b) {
     if (a === undefined && b === undefined) { // arguments.length === 1
@@ -834,15 +884,9 @@ co.RGBtoHLS = function (r, g, b) {
         var d = cmax - cmin;
         s = l > 0.5 ? d / (2 - cmax - cmin) : d / (cmax + cmin);
         switch (cmax) {
-            case r:
-                h = (g - b) / d + (g < b ? 6 : 0);
-                break;
-            case g:
-                h = (b - r) / d + 2;
-                break;
-            case b:
-                h = (r - g) / d + 4;
-                break;
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
         }
         h /= 6;
     }
