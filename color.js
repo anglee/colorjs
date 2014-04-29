@@ -1,4 +1,5 @@
 co = {};
+co.version = "0.0.1";
 co.util = {
     int: function (num) { return parseInt(num, 10); },
     hex: function (num) { num = parseInt(num, 10); var hex = num.toString(16); return hex.length === 1 ? "0" + hex : hex; },
@@ -1229,8 +1230,8 @@ Color.prototype.negate = function() {
 };
 
 Color.prototype.asSeenBy = function () {
-    // TODO, return color seen by different types of color blind or animals   
-    
+    // TODO, return color seen by different types of color blind or animals
+    // http://www.vischeck.com/info/
 };
 
 co.colorBlindTypes = [
@@ -1380,3 +1381,4 @@ co.cssColors = {
     "yellow": "#ffff00",
     "yellowgreen": "#9acd32"
 };
+    
